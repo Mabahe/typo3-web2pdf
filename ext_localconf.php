@@ -20,3 +20,14 @@ ExtensionUtility::configurePlugin(
     [\Mittwald\Web2pdf\Controller\PdfController::class => 'generatePdfLink'],
     [\Mittwald\Web2pdf\Controller\PdfController::class => 'generatePdfLink']
 );
+
+if (!isset($GLOBALS['TYPO3_CONF_VARS']['SYS']['caching']['cacheConfigurations']['web2pdf_pdf'])) {
+    $GLOBALS['TYPO3_CONF_VARS']['SYS']['caching']['cacheConfigurations']['web2pdf_pdf'] = [
+        'frontend' => \TYPO3\CMS\Core\Cache\Frontend\VariableFrontend::class,
+        'backend' => \TYPO3\CMS\Core\Cache\Backend\Typo3DatabaseBackend::class,
+        'options' => [
+            'compression' => true,
+        ],
+        'groups' => ['pages'],
+    ];
+}

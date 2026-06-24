@@ -26,40 +26,19 @@
 
 namespace Mittwald\Web2pdf\View;
 
-use Mittwald\Web2pdf\Options\ModuleOptions;
-use Mittwald\Web2pdf\Utility\FilenameUtility;
-use Mittwald\Web2pdf\Utility\PdfLinkUtility;
+use Mittwald\Web2pdf\Event\ModifyMpdfAfterWriteHtmlEvent;
 use Mpdf\Mpdf;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Fluid\View\StandaloneView;
 
-class PdfView
+class MPdfView extends AbstractPdfView implements PdfViewInterface
 {
-    public const PREG_REPLACEMENT_KEY = 'pregReplacements';
-    public const STR_REPLACEMENT_KEY = 'strReplacements';
-
-    protected ModuleOptions $options;
-    protected FilenameUtility $fileNameUtility;
-    protected PdfLinkUtility $pdfLinkUtility;
-
-    public function __construct(
-        ModuleOptions $options,
-        FilenameUtility $fileNameUtility,
-        PdfLinkUtility $pdfLinkUtility
-    ) {
-        $this->options = $options;
-        $this->fileNameUtility = $fileNameUtility;
-        $this->pdfLinkUtility = $pdfLinkUtility;
-    }
-
-    /**
-     * Renders the PDF view
-     */
-    public function renderHtmlOutput(string $content, string $pageTitle): string
+    public function renderHtmlOutput(string $content, int $pageId): string
     {
-        $fileName = $this->fileNameUtility->convert($pageTitle) . '.pdf';
+        $fileName = $pageId . '_' . sha1($content) . '.pdf';
         $filePath = Environment::getVarPath() . '/web2pdf/' . $fileName;
 
         $content = $this->replaceStrings($content);
@@ -75,32 +54,15 @@ class PdfView
         }
 
         $pdf->WriteHTML($content);
+
+        $eventDispatcher = GeneralUtility::makeInstance(EventDispatcherInterface::class);
+        $eventDispatcher->dispatch(
+            GeneralUtility::makeInstance(ModifyMpdfAfterWriteHtmlEvent::class, $pdf)
+        );
+
         $pdf->Output($filePath, 'F');
 
         return $filePath;
-    }
-
-    /**
-     * Replacements of configured strings
-     *
-     * @param string $content
-     * @return string
-     */
-    private function replaceStrings(string $content): string
-    {
-        if (is_array($this->options->getStrReplacements())) {
-            foreach ($this->options->getStrReplacements() as $searchString => $replacement) {
-                $content = str_replace($searchString, $replacement, $content);
-            }
-        }
-
-        if (is_array($this->options->getPregReplacements())) {
-            foreach ($this->options->getPregReplacements() as $pattern => $patternReplacement) {
-                $content = preg_replace($pattern, $patternReplacement, $content);
-            }
-        }
-
-        return $this->pdfLinkUtility->replace($content);
     }
 
     /**
@@ -129,6 +91,7 @@ class PdfView
             'orientation' => $pageOrientation,
             'tempDir' => Environment::getVarPath() . '/web2pdf',
             'fontDir' => ExtensionManagementUtility::extPath('web2pdf') . 'Resources/Public/Fonts',
+            'curlAllowUnsafeSslRequests' => !$GLOBALS['TYPO3_CONF_VARS']['HTTP']['verify'],
         ]);
 
         $pdf->SetMargins($leftMargin, $rightMargin, $topMargin);

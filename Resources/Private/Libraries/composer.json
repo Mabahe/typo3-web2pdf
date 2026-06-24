@@ -1,6 +1,7 @@
 {
     "name": "mittwald/web2pdf",
     "require": {
+        "dompdf/dompdf": "^3.1",
         "mpdf/mpdf": "^8.0"
     }
 }

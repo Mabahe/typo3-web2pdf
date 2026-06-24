@@ -7,5 +7,13 @@ services:
   Mittwald\Web2pdf\:
     resource: '../Classes/*'
 
-  Mittwald\Web2pdf\View\PdfView:
+  Mittwald\Web2pdf\View\DompdfView:
     public: true
+
+  Mittwald\Web2pdf\View\MPdfView:
+    public: true
+
+  Mittwald\Web2pdf\EventListener\CacheFlushEventListener:
+    tags:
+      - name: event.listener
+        identifier: 'web2pdf/clearAdditionalFolder'

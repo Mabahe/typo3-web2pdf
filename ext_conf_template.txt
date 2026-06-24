@@ -1,0 +1,2 @@
+# cat=basic; type=options[mpdf,dompdf]; label=Choose pdf library (add also via composer)
+pdfLibrary = mpdf
